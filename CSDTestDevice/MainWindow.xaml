@@ -1,0 +1,170 @@
+﻿<Window x:Class="CSDTestDevice.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CSDTestDevice"
+        mc:Ignorable="d"
+        Title="CSDTest" Background="#FF2D6065" Height="768" Icon="Device.png" FontFamily="Liberation Sans" FontSize="36" Width="1350"
+        WindowState="Maximized"
+        xmlns:i1="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:viewmodel="clr-namespace:CSDTestDevice.ViewModel"
+        >
+
+    <Window.DataContext>
+        <viewmodel:CSDTestViewModel/>
+    </Window.DataContext>
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+    <i1:Interaction.Triggers>
+        <i1:EventTrigger EventName="Loaded">
+            <i1:InvokeCommandAction Command="{Binding WindowLoaded}" />
+        </i1:EventTrigger>
+    </i1:Interaction.Triggers>
+
+
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="107*"/>
+            <ColumnDefinition Width="5*"/>
+        </Grid.ColumnDefinitions>
+        <Grid Height="768" Margin="0,0,0,-29.6" Grid.ColumnSpan="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Button x:Name="Start" Content="START" Grid.Row="0" Grid.Column="1" 
+                Background="#FF47D423" BorderThickness="3" 
+                Width="160" Margin="131,0,381,393" Height="50" 
+                VerticalAlignment="Bottom" HorizontalAlignment="Center" 
+                FontSize="24" Foreground="White" FontFamily="Liberation Sans" 
+                Command="{Binding Path=StartCommand}" IsEnabled="{Binding Path=IsEnabled}" />
+            <Button Content="STOP" Grid.Row="0" Grid.Column="1" 
+                Background="Red" BorderThickness="3" 
+                Width="160" Margin="330,0,182,393" Height="50" 
+                VerticalAlignment="Bottom" HorizontalAlignment="Center" 
+                FontSize="24" Foreground="White" FontFamily="Liberation Sans" 
+                Command="{Binding Path=StopCommand}"/>
+            <Border Grid.Row="0" Grid.Column="0" BorderBrush="Gray" BorderThickness="0, 0, 0, 5"  Height="74" Width="500" HorizontalAlignment="Center" Margin="84,10,88,0" 
+                VerticalAlignment="Top">
+                <Label Content="Scan Data" 
+                    HorizontalAlignment="Left" Margin="0,0,0,0" 
+                    VerticalAlignment="Center" Height="54" Width="550" 
+                    FontSize="32" Foreground="White" FontFamily="Liberation Sans"/>
+            </Border>
+            <StackPanel Margin="48,90,23,653.6" Orientation="Horizontal" Grid.Row="0" HorizontalAlignment="Center" Width="601">
+                <Label Content="Barcode : " Margin="30,19,0,226.2" Height="54" Width="150" 
+                        FontSize="30" Foreground="White" FontFamily="Liberation Sans"
+                       HorizontalAlignment="Center"/>
+                <TextBox Background="White" Margin="0,19,0,230.2" MaxLength="20" Width="350" Height="50" 
+                     TextWrapping="Wrap" HorizontalAlignment="Center" Foreground="Black" VerticalContentAlignment="Center"  
+                     FontFamily="Liberation Sans" FontSize="30" IsEnabled="true"
+                     Text="{Binding BarcodeData, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, 
+                     ValidatesOnNotifyDataErrors=True}" TextAlignment="Center"/>
+            </StackPanel>
+            <Border Grid.Row="0" Grid.Column="1" BorderBrush="Gray" BorderThickness="0, 0, 0, 5"  Height="74" Width="550" HorizontalAlignment="Left" Margin="36.2,10,0,0" 
+                VerticalAlignment="Top">
+                <Label Content="Device Data" 
+                    HorizontalAlignment="left" Margin="0,0,0,0" 
+                    VerticalAlignment="Bottom" Height="54" Width="550" 
+                    FontSize="32" Foreground="White" FontFamily="Liberation Sans"/>
+            </Border>
+            <StackPanel Grid.Column="1" Margin="30,90,40,560" Orientation="Horizontal" Grid.Row="0">
+                <Label Content="Date Time :" Margin="0,30,10,332.6" Height="55" Width="240"
+                    FontSize="30" Foreground="White" FontFamily="Liberation Sans" />
+                <TextBox Background="White" Margin="0,29,0,333.6" Width="300" Height="55" 
+                     TextWrapping="Wrap" Foreground="Black" VerticalContentAlignment="Center"  
+                     FontFamily="Liberation Sans" FontSize="30" IsEnabled="False"
+                     Text="{Binding CurrentTime, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged,
+                     ValidatesOnNotifyDataErrors=True}" TextAlignment="Right"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Margin="30,180,40,500" Orientation="Horizontal" Grid.Row="0">
+                <Label Content="Test Program :" Margin="0,16,10,317.2" Height="54" Width="240"
+                    FontSize="30" Foreground="White" FontFamily="Liberation Sans" />
+                <TextBox Background="White" Margin="0,17,0,315.2" Width="300" Height="55" 
+                     TextWrapping="Wrap" Foreground="Black" VerticalContentAlignment="Center"  
+                     FontFamily="Liberation Sans" FontSize="30" IsEnabled="False"
+                     Text="{Binding TestProgram,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged,
+                     ValidatesOnNotifyDataErrors=True}" TextAlignment="Right"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Margin="30,220,40,489.6" Orientation="Horizontal" Grid.Row="0">
+                <Label Content="Test Pressure :" Margin="0,59,10,244.6" Height="54" Width="240"
+                    FontSize="30" Foreground="White" FontFamily="Liberation Sans" />
+                <TextBox Background="White" Margin="0,56,0,246.6" Width="300" Height="55" 
+                     TextWrapping="Wrap" Foreground="Black" VerticalContentAlignment="Center"  
+                     FontFamily="Liberation Sans" FontSize="30" IsEnabled="False"
+                     Text="{Binding TestPressure, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged,
+                     ValidatesOnNotifyDataErrors=True}" TextAlignment="Right"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Margin="30,310,40,429.6" Orientation="Horizontal" Grid.Row="0">
+                <Label Content="Filling Pressure :" Margin="0,47,10,0" Height="54" Width="240"
+                    FontSize="30" Foreground="White" FontFamily="Liberation Sans" VerticalAlignment="Top" />
+
+                <TextBox Background="White" Margin="0,43,0,230" Width="300" Height="55" 
+                     TextWrapping="Wrap" Foreground="Black" VerticalContentAlignment="Center"  
+                     FontFamily="Liberation Sans" FontSize="30" IsEnabled="False"
+                     Text="{Binding FillingPressure,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged,
+                     ValidatesOnNotifyDataErrors=True}" TextAlignment="Right"/>
+
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Margin="30,450,40,320" Orientation="Horizontal" Grid.Row="0">
+                <Label Content="Test Decay : " Margin="0,-13,10,256.6" Height="54" Width="240"
+                    FontSize="30" Foreground="White" FontFamily="Liberation Sans" />
+                <TextBox Background="White" Margin="0,-17,0,259.6" Width="300" Height="55" 
+                     TextWrapping="Wrap" Foreground="Black" VerticalContentAlignment="Center"  
+                     FontFamily="Liberation Sans" FontSize="30" IsEnabled="False"
+                     Text="{Binding TestDecay,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged,
+                     ValidatesOnNotifyDataErrors=True}" TextAlignment="Right"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Margin="30,540,40,260" Orientation="Horizontal" Grid.Row="0">
+                <Label Content="Final Outcome :" Margin="0,-20,10,233.2" Height="54" Width="240"
+                    FontSize="30" Foreground="White" FontFamily="Liberation Sans" />
+                <TextBox Background="White" Margin="0,-25,0,237.2" Width="300" Height="55" 
+                     TextWrapping="Wrap" Foreground="Black" VerticalContentAlignment="Center"  
+                     FontFamily="Liberation Sans" FontSize="30" IsEnabled="False"
+                     Text="{Binding FinalResult,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged,
+                     ValidatesOnNotifyDataErrors=True}" TextAlignment="Right"/>
+            </StackPanel>
+            <StackPanel Margin="48,518,155,456" Orientation="Horizontal">
+                <Label Content="Production Count :" Foreground="White" FontFamily="Liberation Sans"  FontSize="30" 
+                       HorizontalAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center" Width="272" Height="79" Margin="0,6,0,0"/>
+                <TextBox Background="Transparent" Height="79" Width="192" BorderThickness="0"
+                    HorizontalAlignment="Left" VerticalAlignment="Top"
+                    TextWrapping="Wrap" Foreground="White" VerticalContentAlignment="Center"  
+                    FontFamily="Liberation Sans" FontSize="30" IsEnabled="False"
+                    Text="{Binding ProductionCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Margin="0,8,0,0"/>
+            </StackPanel>
+            <StackPanel Margin="48,622,216,378" Orientation="Horizontal">
+                <Label Content="Device ID :" Foreground="White" FontSize="30" FontFamily="Liberation Sans" HorizontalAlignment="Left" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="0,2,0,0" VerticalAlignment="Top" Height="75" Width="163"/>
+                <TextBox Background="Transparent" Foreground="White" Height="79" Width="192" BorderThickness="0" HorizontalAlignment="Left" VerticalAlignment="Top" 
+                         FontFamily="Liberation Sans" FontSize="30" IsEnabled="False" VerticalContentAlignment="Center"
+                         Text="{Binding DeviceId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Grid>
+
+        <Grid Visibility="{Binding IsLicneseValid,Converter={StaticResource BoolToVis}}" Background="#FF2D6065" Grid.ColumnSpan="2" Margin="0,0,0,0.4">
+            <Label Content="License is not validate. Please contact to support team." Foreground="Red" FontWeight="ExtraBold" VerticalAlignment="Center" HorizontalAlignment="Center"
+                   FontSize="45"/>
+        </Grid>
+        <Grid Visibility="{Binding IsFileAvailable,Converter={StaticResource BoolToVis}}" Background="#FF2D6065" Grid.ColumnSpan="2" Margin="0,0,0,0.4">
+            <Label Content="Config data missing. Please contact to support team." Foreground="Red" FontWeight="ExtraBold" VerticalAlignment="Center" HorizontalAlignment="Center"
+                   FontSize="45"/>
+        </Grid>
+
+        
+
+    </Grid>
+</Window>
