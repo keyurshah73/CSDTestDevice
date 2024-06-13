@@ -1,0 +1,16 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/CSDTestDevice/FileContentIndex
+/CSDTestDevice/bin/x64
+/CSDTestDevice/obj/Debug/CSDTestDevice.csproj.AssemblyReference.cache
+/CSDTestDevice/obj/Debug/CSDTestDevice_MarkupCompile.cache
+/CSDTestDevice/obj/Debug/CSDTestDevice_MarkupCompile.lref
+*.cache
+/CSDTestDevice/obj/Debug/CSD_MarkupCompile.lref
+/CSDTestDevice/obj/Debug/MainWindow.g.i.cs
+/CSDTestDevice/obj/Debug/View/CSDTestDevice.g.cs
+/CSDTestDevice/obj/Debug/View/CSDTestDevice.g.i.cs
+/CSDTestDevice/obj/Debug/App.g.cs
+/CSDTestDevice/obj/Debug/App.g.i.cs
