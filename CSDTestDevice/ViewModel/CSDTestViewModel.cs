@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Configuration;
+using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
@@ -20,7 +21,6 @@ namespace CSDTestDevice.ViewModel
     public abstract class NotifyPropertyChanged : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
-
 
         protected void OnPropertyChanged(string propertyName, object oldvalue = null, object newvalue = null)
         {
@@ -42,27 +42,15 @@ namespace CSDTestDevice.ViewModel
         }
     }
 
-    public static class Configuration
-    {
-        //
-        // Summary:
-        //     Gets the System.Configuration.AppSettingsSection data for the current application's
-        //     default configuration.
-        //
-        // Returns:
-        //     Returns a System.Collections.Specialized.NameValueCollection object that contains
-        //     the contents of the System.Configuration.AppSettingsSection object for the current
-        //     application's default configuration.
-        //
-        // Exceptions:
-        //   T:System.Configuration.ConfigurationErrorsException:
-        //     Could not retrieve a System.Collections.Specialized.NameValueCollection object
-        //     with the application settings data.
-        public static NameValueCollection AppSettings { get; }
-    }
-
     public class CSDTestViewModel : NotifyPropertyChanged
     {
+        #region property
+        private string _lastBarcode;
+        public string LastBarcode
+        {
+            get => _lastBarcode;
+            set => this.SetField(ref _lastBarcode, value);
+        }
         private string _currentTime;
         public string CurrentTime
         {
@@ -145,7 +133,9 @@ namespace CSDTestDevice.ViewModel
             get => _IsFileAvailable;
             set => this.SetField(ref _IsFileAvailable, value);
         }
+        #endregion
 
+        #region command
         private ICommand _startCommand;
         public ICommand StartCommand
         {
@@ -159,13 +149,16 @@ namespace CSDTestDevice.ViewModel
             get { return _stopCommand; }
             set { _stopCommand = value; }
         }
-       // private bool bFileStatus = false;
-        private string strComPort;
+        public ICommand WindowLoaded { get; set; }
+        #endregion
+
+        #region private variable
+
         private int nBaudrate;
         private int nByteSize;
-        private int nDeviceCount = 0;
-        private bool IsMonitor = false;
-        private string strSerialNumber = string.Empty;
+        private string strComPort;
+
+        private string strConnectionString = string.Empty;
         private string strTestProgram = string.Empty;
         private string strFinalOutcome = string.Empty;
         private string strCurrentTime = string.Empty;
@@ -177,21 +170,19 @@ namespace CSDTestDevice.ViewModel
         private double dFillingPressure = 0;
         private double dTestPressure = 0;
         private double dTestDecay = 0;
-        private string TesterNo;
-        public ICommand WindowLoaded { get; set; }
-        public SerialCom _serial = null;
-        
+
+        private SerialCom _serial = null;
+
+        #endregion
         public CSDTestViewModel()
         {
             StartCommand = new RelayCommand<object>(StartAction);
             StopCommand = new RelayCommand<object>(StopAction);
             WindowLoaded = new RelayCommand<object>(OnLoaded);
         }
-
-       
         private bool IsValid()
         {
-            bool bReturn = false;
+            bool bReturn;
             string strMac = GetMACAddress();
             string fileName = "Licence\\CSDTest.bin";
             if (File.Exists(fileName))
@@ -219,7 +210,7 @@ namespace CSDTestDevice.ViewModel
 
                                 if(LicDay != 0)
                                 {
-                                    if (LicDay == Days)
+                                    if (LicDay <= Days)
                                         return true;
                                 }
                             }
@@ -240,13 +231,14 @@ namespace CSDTestDevice.ViewModel
         }
         private bool IsConfigFileAvailable()
         {
-            bool bReturn = false;
-            TesterNo = ConfigurationManager.AppSettings["TesterNo"];
+            bool bReturn;
+            strTesterNo = ConfigurationManager.AppSettings["TesterNo"];
             strComPort = ConfigurationManager.AppSettings["ComPort"];
             nBaudrate = Convert.ToInt32(ConfigurationManager.AppSettings["Baudrate"]);
             nByteSize = Convert.ToInt32(ConfigurationManager.AppSettings["ByteSize"]);
+            strConnectionString = ConfigurationManager.AppSettings["ConnectionString"];
 
-            if(string.IsNullOrEmpty(TesterNo) || string.IsNullOrEmpty(strComPort))
+            if (string.IsNullOrEmpty(strTesterNo) || string.IsNullOrEmpty(strComPort))
                 bReturn = true;
             else
                 bReturn = false;
@@ -259,7 +251,7 @@ namespace CSDTestDevice.ViewModel
             foreach (NetworkInterface adapter in nics)
             {
                 IPInterfaceProperties properties = adapter.GetIPProperties();
-                if (adapter.Name == "Ethernet")
+                if (adapter.Name == "LAN")
                     sMacAddress = adapter.GetPhysicalAddress().ToString();
             }
             return sMacAddress;
@@ -290,75 +282,41 @@ namespace CSDTestDevice.ViewModel
                     _serial.OnDataReceived -= OnReceivedData;
                     _serial.OnDataReceived += OnReceivedData;
                 }
-                    DeviceId = TesterNo;
+                    DeviceId = strTesterNo;
             }
         }
         private void OnReceivedData(string Data)
         {
-            nDeviceCount++;
-            CurrentTime = TestProgram = TestPressure = TestDecay = FinalResult = FillingPressure = string.Empty;
+            ClearProperty();
             System.Globalization.CultureInfo _cultureInfo = new System.Globalization.CultureInfo("en-Us", false);
-            strCurrentTime = DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", _cultureInfo);
-            Task.Delay(1000).Wait();
+            DateTime DT = DateTime.Now;
+            strCurrentTime = DT.ToString("dd-MM-yyyy HH:mm:ss", _cultureInfo);
+            Task.Delay(1500).Wait();
             if(!string.IsNullOrEmpty(BarcodeData))
             {
                 CurrentTime = strCurrentTime;
                 DataSplit(Data);
                 ++ProductionCount;
                 string dataCSV = DataCSV();
-                dataCSV = dataCSV.Trim();
-                dataCSV = dataCSV.Replace('\n',' ');
-                dataCSV = dataCSV.Replace('\r', ' ');
-                //MessageBox.Show(dataCSV);
-                LogAction.LogDebug(dataCSV);
+                //LogAction.LogDebug(dataCSV);
                 LogAction.LogCSV(dataCSV);
-                nDeviceCount = 0; BarcodeData = string.Empty;
+                LastBarcode = BarcodeData;
+                LoadDataInDB("INSERT INTO txn_battery_ip_test(Battery_barcode,ScannedDate,PROGRAM_NO,FILLING_PRESSURE,BUILDUP_PRESSURE,TEST_DECAY,RESULT,TESTER_NO) "
+                    + "VALUES('" + BarcodeData + "','" + DT.ToString("MM-dd-yyyy HH:mm:ss", _cultureInfo) + "','" + strTestProgram + "','" + dFillingPressure + "','" + dTestPressure + "','" + dTestDecay + "','" + strFinalOutcome + "','" + DeviceId + "')");
+                BarcodeData = string.Empty;
             }
             else
             {
-                nDeviceCount = 0;
                 _serial.OnDataReceived -= OnReceivedData;
-                MessageBox.Show("Barcode data is empty.", "Error");
-                LogAction.LogDebug("Barcode data is empty.");
+                MessageBox.Show("Barcode data field is empty.", "ERROR");
+                LogAction.LogDebug("Barcode data field is empty.");
                 _serial.OnDataReceived += OnReceivedData;
             }
         }
-        private void DataMonitor()
-        {
-            while(IsMonitor)
-            {
-                if(nDeviceCount == 1)
-                {
-                    nDeviceCount =  0;
-                }
-                Task.Delay(100).Wait();
-            }
-        }
-        //private string GetExecuteQuery()
-        //{
-        //    try
-        //    {
-        //        //string strFormat = String.Format("INSERT INTO Data (DateTime, ProgramID) VALUES ({0}, {1})", DateTime.Now.Date, 5);
-        //        //return strFormat;
-        //    }
-        //    catch(Exception ex)
-        //    {
-        //        System.Windows.MessageBox.Show(ex.Message);
-        //    }
-        //        return string.Empty;
-        //}
-        //private string GetConnectionString()
-        //{
-        //    return "server = 127.0.0.1; uid = root; pwd = root; DataSource = battrixx8";
-        //    //return "server=localhost:3306;Database=battrixx8;User ID=root;Password=root;";
-        //}
         private void StartAction(object obj)
         {
             try
             {
-                //string connectionString = GetConnectionString();
-                //string ExecuteQuery = GetExecuteQuery();
-                //CreateCommand(ExecuteQuery, connectionString);
                 if (_serial == null)
                 {
                     _serial = new SerialCom(strComPort, nBaudrate, nByteSize);
@@ -367,47 +325,37 @@ namespace CSDTestDevice.ViewModel
                 }
                 if (_serial.OpenPort())
                 {
-                    //IsMonitor = true;
-                    //thDataMoitor = new Thread(DataMonitor)
-                    //{
-                    //    Priority = ThreadPriority.Normal
-                    //};
-                    //thDataMoitor.Start();
                     IsEnabled = false;
                 }
                 else
                 {
                     LogAction.LogDebug("Serial port not open. Check hardware connection");
-                    MessageBox.Show("Serial port not open. Check hardware connection", "Error");
+                    MessageBox.Show("Serial port not open. Check hardware connection", "ERROR");
                 }
             }
             catch (Exception ex)
             {
-                LogAction.LogDebug("Start Action exception." + ex.Message);
-                System.Windows.MessageBox.Show(ex.Message);
+                LogAction.LogDebug("While calling start action Issue is generated." + ex.Message);
+                MessageBox.Show(ex.Message,"ERROR");
             }
         }
         private void StopAction(object obj)
         {
             try
             {
-                //IsMonitor = false;
-                //if (thDataMoitor.IsAlive)
-                //    thDataMoitor.Abort();
-                //thDataMoitor = null;
-
+                IsEnabled = true;
                 if (_serial.IsOpen())
                 {
                     _serial.OnDataReceived -= OnReceivedData;
                     _serial.ClosePort();
                 }
-                CurrentTime = TestProgram = TestPressure = TestDecay = FinalResult = FillingPressure = string.Empty;
+                ClearProperty();
                 BarcodeData = string.Empty;
-                IsEnabled = true;
+                ProductionCount = 0;
             }
             catch (Exception ex)
             {
-                LogAction.LogDebug("Stop Action exception." + ex.Message);
+                LogAction.LogDebug("While calling stop action Issue is generated." + ex.Message);
                 MessageBox.Show(ex.Message);
             }
         }
@@ -424,7 +372,7 @@ namespace CSDTestDevice.ViewModel
                             {
                                 if (str[i].Contains(''))
                                 {
-                                    strSerialNumber = str[i].Replace("", "");
+                                    string strSerialNumber = str[i].Replace("", "");
                                 }
                                 break;
                             }
@@ -500,31 +448,94 @@ namespace CSDTestDevice.ViewModel
                 LogAction.LogDebug("Data split time exception occure. " + e.Message);
             }
         }
-
         private string DataCSV()
         {
-            //StringBuilder sbStoreCSV = new StringBuilder();
-            //sbStoreCSV.Append(strCurrentTime + ", ");
-            //sbStoreCSV.Append(BarcodeData + ", ");
-            //sbStoreCSV.Append(strTestProgram + ", ");
-            //sbStoreCSV.Append(strTestPressure + ", ");
-            //sbStoreCSV.Append(strFillingPressure + ", ");
-            //sbStoreCSV.Append(strTestDecay + ", ");
-            //sbStoreCSV.Append(strFinalOutcome + ", ");
-            //sbStoreCSV.Append(TesterNo + ",");
-
-            return (strCurrentTime + "," + BarcodeData + "," + strTestProgram + "," + strTestPressure + "," + strFillingPressure + "," + strTestDecay + "," + strFinalOutcome + "," + TesterNo);
-
-            //return sbStoreCSV.ToString();
+            string strReturn = strCurrentTime + "," + BarcodeData + "," + strTestProgram + "," + strTestPressure + "," + strFillingPressure + "," + strTestDecay + "," + strFinalOutcome + "," + strTesterNo;
+            strReturn = strReturn.Trim();
+            strReturn = strReturn.Replace("\n", "");
+            strReturn = strReturn.Replace("\r", "");
+            return strReturn;
         }
-        //private static void CreateCommand(string queryString, string connectionString)
+        private bool LoadDataInDB(string Query)
+        {
+            SqlConnection _SqlConnection = new SqlConnection();
+            SqlCommand _SqlCommand = new SqlCommand();
+            bool _IsLoad = false;
+
+            _SqlConnection.ConnectionString = strConnectionString;
+
+            try
+            {
+                _SqlConnection.Open();
+            }
+            catch (Exception ex)
+            {
+                LogAction.LogDebug("While Calling IsOpen Issue Is generated.Connection String is " + strConnectionString + Environment.NewLine + ex.Message);
+                MessageBox.Show("While Calling IsOpen Issue Is generated.Connection String is " + strConnectionString + Environment.NewLine + ex.Message, "DBERROR");
+            }
+
+            try
+            {
+                if (_SqlConnection.State == System.Data.ConnectionState.Open)
+                {
+                    _SqlCommand.CommandText = Query;
+                    _SqlCommand.Connection = _SqlConnection;
+
+                    _SqlCommand.ExecuteNonQuery();
+                    _IsLoad = true;
+                    _SqlConnection.Close();
+                }
+                else
+                {
+                    LogAction.LogDebug("Database not open.");
+                    MessageBox.Show("Database not open.","DBERROR");
+                }
+                      
+                _SqlCommand.Dispose();
+                _SqlConnection.Dispose();
+            }
+            catch(Exception ex)
+            {
+                LogAction.LogDebug("While Calling Data Insert Issue Is generated." + Environment.NewLine + ex.Message);
+                MessageBox.Show("While Calling Data Insert Issue Is generated." + Environment.NewLine + ex.Message, "DBERROR");
+            }
+           
+
+            return _IsLoad;
+        }
+
+        private void ClearProperty()
+        {
+            LastBarcode = CurrentTime = TestProgram = TestPressure = TestDecay = FinalResult = FillingPressure = string.Empty;
+        }
+        //private bool LoadInDatabase()
         //{
-        //    using (SqlConnection connection = new SqlConnection(connectionString))
+        //    try
         //    {
-        //        SqlCommand command = new SqlCommand(queryString, connection);
-        //        command.Connection.Open();
-        //        command.ExecuteNonQuery();
-        //        command.Connection.Close();
+        //        using (SqlConnection connection = new SqlConnection(strConnectionString))
+        //        {
+        //            string strQueryString = "INSERT INTO data (barcode,programmeNo,testPressure,testDecay,fillingPressure,outcome) "
+        //                + "VALUES (@barcode,@programmeNo,@testPressure,@testDecay,@fillingPressure,@outcome)";
+        //            connection.Open();
+        //            using (SqlCommand command = new SqlCommand(strQueryString, connection))
+        //            {
+        //                command.Parameters.AddWithValue("@barcode", BarcodeData);
+        //                command.Parameters.AddWithValue("@programmeNo", strTestProgram);
+        //                command.Parameters.AddWithValue("@testPressure", dTestPressure);
+        //                command.Parameters.AddWithValue("@testDecay", dTestDecay);
+        //                command.Parameters.AddWithValue("@fillingPressure", dFillingPressure);
+        //                command.Parameters.AddWithValue("@outcome", strFinalOutcome);
+        //                command.ExecuteNonQuery();
+        //            }
+        //            connection.Close();
+        //        }
+        //        return true;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        LogAction.LogDebug("Load data in database." + ex.Message);
+        //        MessageBox.Show(ex.Message);
+        //        return false;
         //    }
         //}
     }

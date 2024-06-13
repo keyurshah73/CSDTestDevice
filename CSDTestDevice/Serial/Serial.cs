@@ -60,7 +60,7 @@ namespace CSDTestDevice.Serial
         {
             Task.Delay(200).Wait();
             string strReceivedData = serialPort.ReadExisting();
-            LogAction.LogDebug("Serial Data : "+ strReceivedData);
+            //LogAction.LogDebug("Serial Data : "+ strReceivedData);
             OnDataReceived?.BeginInvoke(strReceivedData, null, null);
             return;
         }
